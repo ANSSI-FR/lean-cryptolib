@@ -118,7 +118,7 @@ lemma barrett_mul_spec (a b: ℤ) (M R k q: ℕ)
         transitivity ((↑n * 2 + 1) * ↑q - 2 * (a * b)) / (2 * ↑q) <;> [skip; assumption]
         refine (div_le_div_iff_of_pos_right ?_).mpr ?_ <;> (qify at Hqpos; qify at H; linarith)
       | inr Hgt =>
-        rw [gt_iff_lt, round_lt_iff] at Hgt
+        rw [round_lt_iff] at Hgt
         let ⟨n, Ha, Hb⟩ := Hgt
         have Hδ₀: δ < (↑n:ℚ) + 1 / 2 - ↑(a * b) / ↑q ∧ ↑n + 1 / 2 - ↑(a * b) / ↑q ≤ (0:ℚ) := by apply And.intro <;> qify <;> linarith
         rw [← div_one (↑n:ℚ), div_add_div, div_sub_div] at Hδ₀ <;> [skip ; simp; (qify at Hqpos; linarith); simp ; simp]

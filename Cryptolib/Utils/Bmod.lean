@@ -57,4 +57,18 @@ lemma emod_def' (x: ℤ) (m: ℕ):
     | inr Hpos =>
       have X := @Int.emod_lt_of_pos x m (by omega); linarith
 
+lemma bmod_eq_of_abs_lt {n: ℤ} {m: ℕ} (hlt: |n| < m/2):
+  n.bmod m = n := by
+  rw [abs_lt] at hlt
+  apply Int.bmod_eq_of_le <;> omega
+
+lemma bmod_bmod_eq_of_le {x: ℤ} {m1 m2: ℕ} (h: 0 < m1) (h': m1 ≤ m2):
+  (x.bmod m1).bmod m2 = x.bmod m1 := by
+  have X0 := @Int.le_bmod x m1 h
+  have X1 := @Int.bmod_le x m1 h
+  rw [@Int.bmod_eq_of_le _ m2] <;> omega
+
+lemma bmod_bmod_eq_of_lt {x: ℤ} {m1 m2: ℕ} (h: 0 < m1) (h': m1 < m2):
+  (x.bmod m1).bmod m2 = x.bmod m1 := by
+  rw [bmod_bmod_eq_of_le] <;> omega
 end Int

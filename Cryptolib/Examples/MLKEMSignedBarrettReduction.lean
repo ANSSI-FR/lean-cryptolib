@@ -5,6 +5,7 @@ https://github.com/pq-crystals/kyber/blob/main/ref/reduce.c#L25-L42
 -/
 
 import Cryptolib.Arithmetic.SignedBarrettReduction
+import Cryptolib.Utils.Bmod
 
 section MLKEMExample
 def M: ℕ := 16    -- 16 bits
@@ -45,9 +46,29 @@ def mlkem_barrett_reduce_impl (a: Int16): Int16 :=
   let t: Int16 := t.toInt16 * 3329
   a - t
 
--- TODO: Waiting for better support of bv_decide for Int16/Int32
-/- lemma mlkem_barrett_reduce_impl_correct (a: Int16):
-  Int16.toInt (mlkem_barrett_reduce_impl a) = (Int16.toInt a).bmod q :=
-  sorry
- -/
+lemma mlkem_barrett_reduce_impl_correct (a: Int16):
+  Int16.toInt (mlkem_barrett_reduce_impl a) = (Int16.toInt a).bmod q := by
+  rw [← mlkem_barrett_reduce_correct]
+  . rw [mlkem_barrett_reduce, mlkem_barrett_reduce_impl]
+    rw [Int16.toInt_sub, Int16.toInt_mul]
+    simp
+    rw [show ((1:Int32) <<< 25 = 33554432) by native_decide]
+    rw [← Int32.toInt_toBitVec, Int32.toBitVec_shiftRight]
+    simp
+    rw [BitVec.toInt_signExtend_of_le] <;> [skip;simp]
+    rw [Int16.toInt_toBitVec]
+    have Hle := Int16.le_toInt a
+    have Hlt := Int16.toInt_lt a
+    rw [@Int.bmod_eq_of_le _ 4294967296] <;> [skip; (simp; omega); (simp; omega)]
+    rw [show (a.toInt - (20159 * a.toInt + 33554432) >>> 26 * 3329 = mlkem_barrett_reduce a.toInt) by
+        rw [mlkem_barrett_reduce]; simp]
+    rw [mlkem_barrett_reduce_correct, q]
+    . rw [Int.bmod_bmod_eq_of_lt] <;> omega
+    . rw [abs_le]; omega
+  . rw [abs_le']; split_ands
+    . apply Int.le_of_lt
+      apply Int16.toInt_lt
+    . apply Int.neg_le_of_neg_le
+      apply Int16.le_toInt
+
 end MLKEMExample

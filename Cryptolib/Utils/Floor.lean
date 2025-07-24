@@ -1,11 +1,13 @@
 -- Additional facts about `Floor`
 
-import Mathlib.Algebra.Order.Floor
+import Mathlib.Tactic
+import Mathlib.Algebra.Order.Field.Defs
+import Mathlib.Algebra.Order.Floor.Defs
 
 section LinearOrderedField
 
 variable {α : Type*}
-variable [LinearOrderedField α] [FloorRing α]
+variable [Field α] [LinearOrder α] [IsStrictOrderedRing α] [FloorRing α]
 
 lemma floor_sub_abs (a b: α):
   |⌊a⌋ - ⌊b⌋| ≤ ⌈|a - b|⌉ := by
@@ -17,7 +19,7 @@ lemma floor_sub_abs (a b: α):
     nth_rw 2 [← Int.fract_add_floor b]
     rw [show (Int.fract a + ↑⌊a⌋ - (Int.fract b + ↑⌊b⌋) = (Int.fract a - Int.fract b) + ↑(⌊a⌋ - ⌊b⌋)) by
         rw [Int.cast_sub]; linarith]
-    rw [Int.ceil_add_int]; simp
+    rw [Int.ceil_add_intCast]; simp
     rw [show (0 = -1 + 1) by omega]
     rw [Int.add_one_le_ceil_iff]; simp
     have Ha₀: 0 ≤ Int.fract a := by apply Int.fract_nonneg

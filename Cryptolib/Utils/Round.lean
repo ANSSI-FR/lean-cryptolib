@@ -6,7 +6,7 @@ import Cryptolib.Utils.Floor
 section LinearOrderedField
 
 variable {α : Type*}
-variable [LinearOrderedField α] [FloorRing α]
+variable [Field α] [LinearOrder α] [IsStrictOrderedRing α] [FloorRing α]
 
 lemma round_sub_abs (a b: α):
   |round a - round b| ≤ ⌈|a - b|⌉ := by

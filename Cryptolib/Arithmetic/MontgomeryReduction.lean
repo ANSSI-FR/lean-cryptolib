@@ -3,7 +3,6 @@
    Vincent Hwang, Communications in Cryptology (CiC 2024), Issue 2
 -/
 
-import Mathlib.Data.Int.DivMod
 import Mathlib.Tactic
 import Cryptolib.Utils.Bmod
 

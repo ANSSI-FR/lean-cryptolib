@@ -120,11 +120,11 @@ def ringEquivZModᵤ (n: ℕ): ZModₛ n ≃+* ZModᵤ n := by
     apply Subtype.eq; simp
     rw [← Int.emod_def']; split_ifs <;> try omega
     . rw [show (↑n + xval) * (↑n + yval) = xval * yval + (n + xval + yval) * ↑n by linarith]
-      rw [Int.add_mul_emod_self]
+      rw [Int.add_mul_emod_self_right]
     . rw [show xval * (↑n + yval) = xval * yval + xval * n by linarith]
-      rw [Int.add_mul_emod_self]
+      rw [Int.add_mul_emod_self_right]
     . rw [show (↑n + xval) * yval = xval * yval + yval * n by linarith]
-      rw [Int.add_mul_emod_self]
+      rw [Int.add_mul_emod_self_right]
   . simp; intros x y
     let ⟨xval, xeq⟩ := x
     let ⟨yval, yeq⟩ := y
@@ -133,11 +133,11 @@ def ringEquivZModᵤ (n: ℕ): ZModₛ n ≃+* ZModᵤ n := by
     rw [← Int.emod_def']
     split_ifs <;> try omega
     . rw [show ↑n + xval + (↑n + yval) = xval + yval + 2 * n by linarith]
-      rw [Int.add_mul_emod_self]
+      rw [Int.add_mul_emod_self_right]
     . rw [show ↑n + xval + yval = xval + yval + 1 * n by linarith]
-      rw [Int.add_mul_emod_self]
+      rw [Int.add_mul_emod_self_right]
     . rw [show xval + (↑n + yval) = xval + yval + 1 * n by linarith]
-      rw [Int.add_mul_emod_self]
+      rw [Int.add_mul_emod_self_right]
 
 def ringEquivZMod (n: ℕ) [NeZero n]: ZModₛ n ≃+* ZMod n := by
   apply (RingEquiv.trans (ringEquivZModᵤ n) (ZModᵤ.ringEquivZMod n))
