@@ -34,10 +34,10 @@ lemma mlkem_barrett_reduce_correct (a: ℤ) (Ha: |a| ≤ 2 ^ 15):
     rw [Rat.floor_intCast_div_natCast]; simp; omega
   . simp [k]
   . native_decide
-  . use (q/2); native_decide
+  . use (q/2); rfl
   . native_decide
   . native_decide
-  . transitivity; apply Ha; native_decide
+  . transitivity; apply Ha; rfl
 
 -- This is basically the C code translated manually into Lean
 def mlkem_barrett_reduce_impl (a: Int16): Int16 :=
@@ -52,7 +52,7 @@ lemma mlkem_barrett_reduce_impl_correct (a: Int16):
   . rw [mlkem_barrett_reduce, mlkem_barrett_reduce_impl]
     rw [Int16.toInt_sub, Int16.toInt_mul]
     simp
-    rw [show ((1:Int32) <<< 25 = 33554432) by native_decide]
+    rw [show ((1:Int32) <<< 25 = 33554432) by rfl]
     rw [← Int32.toInt_toBitVec, Int32.toBitVec_shiftRight]
     simp
     rw [BitVec.toInt_signExtend_of_le] <;> [skip;simp]
