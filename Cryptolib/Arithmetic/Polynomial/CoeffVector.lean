@@ -1,7 +1,7 @@
 import Batteries.Data.Vector.Lemmas
 import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.OfFn
-import Mathlib.Algebra.Polynomial.Degree.Definitions
+import Mathlib.Algebra.Polynomial.Degree.Defs
 import Mathlib.Algebra.Polynomial.Degree.Operations
 
 namespace Polynomial

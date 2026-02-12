@@ -14,9 +14,7 @@ variable [Semiring R]
 lemma natDegree_lt_iff_degree_lt' {n: ℕ} {p: R[X]} (hn: n ≠ 0):
   p.natDegree < n ↔ p.degree < ↑n := by
   by_cases hp: p = 0
-  . rw [hp]; simp; apply Iff.intro
-    . intro; apply WithBot.bot_lt_coe
-    . omega
+  . rw [hp]; simp; omega
   . apply Polynomial.natDegree_lt_iff_degree_lt hp
 
 end Semiring
@@ -70,26 +68,26 @@ end CommRing
 section Field
 variable [Field R]
 
-lemma degree_mod_lt (p q: R[X]) (Hq: q ≠ 0):
-  (p % q).degree < q.degree := by
-  rw [mod_def, show (q.degree = (q * C q.leadingCoeff⁻¹).degree) by simp]
-  apply degree_modByMonic_lt; rw [Monic]; simp
-  apply Field.mul_inv_cancel; apply Polynomial.leadingCoeff_ne_zero.mpr Hq
+-- lemma degree_mod_lt (p q: R[X]) (Hq: q ≠ 0):
+--   (p % q).degree < q.degree := by
+--   rw [mod_def, show (q.degree = (q * C q.leadingCoeff⁻¹).degree) by simp]
+--   apply degree_modByMonic_lt; rw [Monic]; simp
+--   apply Field.mul_inv_cancel; apply Polynomial.leadingCoeff_ne_zero.mpr Hq
 
 @[simp]
 lemma mod_mod (p q: R[X]):
   (p % q) % q = p % q := by
   apply modByMonic_idemp
 
-@[simp]
-lemma add_mod (p₁ p₂ q: R[X]):
-  (p₁ + p₂) % q = p₁ % q + p₂ % q := by
-  apply add_modByMonic
+-- @[simp]
+-- lemma add_mod (p₁ p₂ q: R[X]):
+--   (p₁ + p₂) % q = p₁ % q + p₂ % q := by
+--   apply add_modByMonic
 
-@[simp]
-lemma sub_mod (p₁ p₂ q: R[X]):
-  (p₁ - p₂) % q = p₁ % q - p₂ % q := by
-  apply sub_modByMonic
+-- @[simp]
+-- lemma sub_mod (p₁ p₂ q: R[X]):
+--   (p₁ - p₂) % q = p₁ % q - p₂ % q := by
+--   apply sub_modByMonic
 
 @[simp]
 lemma mul_mod_left (p₁ p₂ q: R[X]):

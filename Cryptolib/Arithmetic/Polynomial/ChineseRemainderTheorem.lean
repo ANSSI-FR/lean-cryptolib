@@ -18,11 +18,6 @@ def decompose (κ: ℕ) (ℓ: ℕ): List ℕ :=
   | Nat.succ ℓ =>
     List.flatMap (fun i => [i/2, 2 ^ κ + i/2]) (decompose κ ℓ)
 
--- TODO: Sanity check
--- lemma decompose_ok (κ: ℕ):
---   decompose κ κ = List.map ((fun i ↦ 2 * i + 1) ∘ BitVec.toNat ∘ BitVec.reverse ∘ BitVec.ofNat κ) (List.range (2 ^ κ)) := by
---   sorry
-
 lemma length_decompose (κ: ℕ) (ℓ: ℕ):
   (decompose κ ℓ).length = 2 ^ ℓ := by
   induction ℓ with
@@ -53,6 +48,105 @@ lemma decompose_mod (κ ℓ: ℕ) (Hℓ: ℓ ≤ κ):
       simp_rw [heq]; simp
       rw [show (2 ^ κ = 2 ^ (ℓ + 1) * 2 ^ (κ - (ℓ + 1))) by rw [← Nat.pow_add]; simp; omega]
       simp; exact hmod'
+
+lemma decompose_succ_eq (κ: ℕ) (ℓ: ℕ) (Hℓ: ℓ ≤ κ):
+  decompose (Nat.succ κ) ℓ = List.map (Nat.mul 2) (decompose κ ℓ) := by
+  induction ℓ with
+  | zero =>
+    simp [decompose]; omega
+  | succ ℓ ih =>
+    simp [decompose]; rw [ih (by omega)]
+    rw [List.flatMap_map, List.map_flatMap]; simp
+    apply List.flatMap_congr; intro x hx
+    rw [Nat.left_distrib]
+    have heq: 2 * (x / 2) = x := by
+      have hmod := decompose_mod κ ℓ (by omega)
+      apply List.forall_iff_forall_mem.1 at hmod
+      apply hmod at hx
+      apply Nat.dvd_of_mod_eq_zero at hx
+      apply Nat.mul_div_cancel'; apply dvd_trans _ hx
+      apply dvd_pow_self; omega
+    rw [heq, Nat.pow_add_one']
+
+-- This is a sanity check
+-- In the NIST standards, the codomain of the NTT is specified using bitrev
+-- For instance, the moduli for ML-KEM are X² - ζ^(2BitRev₇(i)+1)
+-- We show this is the same as what we compute using [decompose]
+lemma decompose_ok (κ: ℕ):
+  decompose κ κ = List.map ((fun i ↦ 2 * BitVec.toNat (BitVec.reverse (BitVec.ofNat κ i)) + 1)) (List.range (2 ^ κ)) := by
+  induction κ with
+  | zero => rfl
+  | succ κ ih =>
+    simp [decompose]
+    rw [decompose_succ_eq _ _ (by omega), ih, List.map_map, List.flatMap_map]
+    simp; apply List.ext_get
+    . simp; omega
+    . simp; intros n h₁ h₂
+      rw [@List.getElem_flatMap_constant_length _ _ _ _ 2 (by simp) _ (by simp; omega)]
+      cases Nat.mod_two_eq_zero_or_one n with
+      | inl hzero =>
+        simp_rw [hzero]; simp
+        rw [← @BitVec.toNat_setWidth_of_le _ (κ + 1) _ (by omega)]
+        congr; apply BitVec.eq_of_getElem_eq
+        intros i hi; simp
+        rw [BitVec.getElem_reverse, BitVec.getLsbD_reverse]
+        rw [← Nat.shiftRight_one]
+        rw [BitVec.getMsbD, BitVec.getMsbD]
+        rw [decide_eq_true hi]; simp
+        cases Nat.lt_or_ge i κ with
+        | inl hi' =>
+          rw [decide_eq_true hi']; simp
+          rw [BitVec.getLsbD, BitVec.getElem_eq_testBit_toNat]
+          rw [BitVec.toNat_ofNat, BitVec.toNat_ofNat]; simp
+          rw [decide_eq_true (by omega)]; simp
+          congr; omega
+        | inr hi' =>
+          rw [show i = κ by omega, decide_eq_false (by omega)]; simp
+          rw [BitVec.getElem_eq_testBit_toNat, BitVec.toNat_ofNat]; simp
+          assumption
+      | inr hone =>
+        simp_rw [hone]; simp
+        rw [← @BitVec.toNat_setWidth_of_le _ (κ + 1) _ (by omega)]
+        apply Nat.eq_of_testBit_eq; intros i; simp
+        have hlt₁ := BitVec.isLt (BitVec.ofNat (κ + 1) n).reverse
+        have hlt₂ := BitVec.isLt (BitVec.ofNat κ (n / 2)).reverse
+        have hlt₃ : (2 * (BitVec.ofNat (κ + 1) n).reverse.toNat + 1) < 2 * 2 ^ (κ + 1) := by omega
+        rw [show 2 * 2 ^ (κ + 1) = 2 ^ (κ + 2) by rw [← Nat.pow_add_one']] at hlt₃
+        have hlt₄ : (2 * (BitVec.ofNat κ (n / 2)).reverse.toNat + 1) < 2 * 2 ^ κ := by omega
+        rw [← Nat.pow_add_one'] at hlt₄
+        have hlt₅ : 2 ^ (κ + 1) + (2 * (BitVec.ofNat κ (n / 2)).reverse.toNat + 1) < 2 ^ (κ + 1) + 2 ^ (κ + 1) := by omega
+        rw [← Nat.two_mul, ← Nat.pow_add_one'] at hlt₅
+        cases Nat.lt_or_ge i (κ + 2) with
+        | inl ha =>
+          have hb: i = κ + 1 ∨ i < κ + 1 := by omega
+          cases hb with
+          | inl hb =>
+            subst i; rw [Nat.testBit_two_pow_add_eq]
+            rw [Nat.testBit_lt_two_pow hlt₄]; simp
+            rw [Nat.testBit_add_one, Nat.mul_add_div (by omega)]; simp
+            rw [← BitVec.getElem_eq_testBit_toNat _ _ (by omega)]
+            rw [BitVec.getElem_reverse, BitVec.getMsbD]
+            rw [decide_eq_true (by omega)]; simp
+            rw [BitVec.getElem_eq_testBit_toNat, BitVec.toNat_ofNat]; simp
+            assumption
+          | inr hb =>
+            rw [Nat.testBit_two_pow_add_gt hb]
+            cases i with
+            | zero => simp
+            | succ i =>
+              rw [Nat.testBit_add_one, Nat.mul_add_div (by omega)]; simp
+              rw [Nat.testBit_add_one, Nat.mul_add_div (by omega)]; simp
+              rw [← BitVec.getElem_eq_testBit_toNat _ _ (by omega)]
+              rw [BitVec.getElem_reverse, BitVec.getMsbD]
+              rw [← BitVec.getElem_eq_testBit_toNat _ _ (by omega)]
+              rw [BitVec.getElem_reverse, BitVec.getMsbD]
+              rw [decide_eq_true (by omega), decide_eq_true (by omega)]; simp
+              rw [BitVec.getLsbD, BitVec.getElem_eq_testBit_toNat, BitVec.toNat_ofNat, BitVec.toNat_ofNat]
+              simp; rw [decide_eq_true (by omega)]; simp
+              rw [← Nat.testBit_add_one]; congr; omega
+        | inr ha =>
+          rw [Nat.testBit_lt_two_pow (by apply Nat.lt_of_lt_of_le hlt₅ (by apply Nat.pow_le_pow_right <;> omega))]
+          rw [Nat.testBit_lt_two_pow (by apply Nat.lt_of_lt_of_le hlt₃ (by apply Nat.pow_le_pow_right <;> omega))]
 
 noncomputable abbrev posicyclic (n: ℕ) (c: k): k[X] :=
   X ^ n - C c
@@ -123,12 +217,12 @@ lemma mod_posicyclic_eq [DecidableEq k]
                 simp; congr; omega
               . rw [Polynomial.ofFn_coeff_eq_zero_of_ge _ (by omega)]; simp
                 apply (Polynomial.degree_lt_iff_coeff_zero _ (2 * n)).mp
-                . rw [hp, ← h₁]; apply Polynomial.degree_mod_lt _ _ h₄
+                . rw [hp, ← h₁]; apply Polynomial.degree_mod_lt _ h₄
                 . omega
             . rw [Polynomial.ofFn_coeff_eq_val_of_lt _ (by omega)]
               rw [Polynomial.ofFn_coeff_eq_val_of_lt _ (by omega)]
-              simp; ring]; simp
-  rw [Polynomial.mul_self_mod h₃]; simp
+              simp; ring]
+  rw [Polynomial.add_mod, Polynomial.mul_self_mod h₃]; simp
   apply (Polynomial.mod_eq_self_iff h₃).mpr
   rw [h₂]; apply Polynomial.ofFn_degree_lt
 
@@ -162,7 +256,7 @@ lemma mod_posicyclic_recompose [DecidableEq k]
       rw [Polynomial.ofFn_coeff_eq_zero_of_ge _ (by omega)]
       simp
       apply (Polynomial.degree_lt_iff_coeff_zero _ (2 * n)).mp
-      . rw [hp, ← h₁]; apply Polynomial.degree_mod_lt _ _ h₂
+      . rw [hp, ← h₁]; apply Polynomial.degree_mod_lt _ h₂
       . omega
   . rw [Polynomial.ofFn_coeff_eq_val_of_lt _ (by omega)]
     rw [Polynomial.ofFn_coeff_eq_val_of_lt _ (by omega)]
@@ -218,7 +312,7 @@ lemma ntt_moduli_layer (n κ ℓ: ℕ) (ζ: k)
   let ⟨h₁, ⟨h₂, h₃⟩⟩ := h
   rw [h₁, h₂, h₃]; apply posicyclic_decompose _ _ (Nat.two_pow_pos _)
 
-noncomputable def ntt (n κ ℓ: ℕ) (ζ: k) (p: k[X]): List k [X] :=
+noncomputable def ntt (n κ ℓ: ℕ) (ζ: k) (p: k[X]): List k[X] :=
   List.map (fun q => p % q) (ntt_moduli n κ ℓ ζ)
 
 lemma length_ntt (n κ ℓ: ℕ) (ζ: k) (p: k[X]):
@@ -422,7 +516,7 @@ lemma ntt_layer_intt_layer
               rw [show (C a⁻¹ * pl[1 + i] * C a) = pl[1 + i] by rw [mul_comm, ← mul_assoc, ← Polynomial.C_mul, Field.mul_inv_cancel a (by apply pow_ne_zero; intro hz; rw [hz] at hκ; simp at hκ)]; simp]
               ring_nf]
         rw [show C 2⁻¹ * (pl[i] + pl[i + 1] + (pl[i] - pl[i + 1] + C a⁻¹ * (pl[i] - pl[i + 1]) * posicyclic (2 ^ (n - (ℓ + 1))) a)) = C 2⁻¹ * (pl[i] + pl[i]) + (C 2⁻¹ * C a⁻¹ * (pl[i] - pl[i + 1])) * (posicyclic (2 ^ (n - (ℓ + 1))) a) by ring]
-        simp; rw [Polynomial.mul_self_mod (by apply posicyclic_neq_zero; apply Nat.two_pow_pos)]
+        rw [Polynomial.add_mod, Polynomial.mul_self_mod (by apply posicyclic_neq_zero; apply Nat.two_pow_pos)]
         rw [show C 2⁻¹ * (pl[i] + pl[i]) = C 2⁻¹ * (C 2 * pl[i]) by ring_nf; rfl]
         rw [← mul_assoc, ← Polynomial.C_mul, mul_comm _ 2, Field.mul_inv_cancel _ (by apply Ring.two_ne_zero hk)]
         simp
@@ -438,7 +532,7 @@ lemma ntt_layer_intt_layer
               rw [show (C a⁻¹ * pl[i/2 * 2] * C (-a)) = - pl[i/2 * 2] by rw [mul_comm, ← mul_assoc, ← Polynomial.C_mul, show -a * a⁻¹ = -(a * a⁻¹) by ring, Field.mul_inv_cancel a (by apply pow_ne_zero; intro hz; rw [hz] at hκ; simp at hκ)]; simp]
               ring_nf]
         rw [show C 2⁻¹ * (pl[2 * (i / 2)] + pl[i] + (pl[i] - pl[2 * (i / 2)] - C a⁻¹ * (pl[i] - pl[2 * (i / 2)]) * posicyclic (2 ^ (n - (ℓ + 1))) (-a))) = C 2⁻¹ * (pl[i] + pl[i]) - (C 2⁻¹ * C a⁻¹ * (pl[i] - pl[2 * (i / 2)])) * (posicyclic (2 ^ (n - (ℓ + 1))) (-a)) by ring]
-        simp; rw [Polynomial.mul_self_mod (by apply posicyclic_neq_zero; apply Nat.two_pow_pos)]
+        rw [Polynomial.sub_mod, Polynomial.mul_self_mod (by apply posicyclic_neq_zero; apply Nat.two_pow_pos)]
         rw [show C 2⁻¹ * (pl[i] + pl[i]) = C 2⁻¹ * (C 2 * pl[i]) by ring_nf; rfl]
         rw [← mul_assoc, ← Polynomial.C_mul, mul_comm _ 2, Field.mul_inv_cancel _ (by apply Ring.two_ne_zero hk)]
         simp
@@ -463,7 +557,7 @@ lemma nttSpec_inttSpec
   (hℓ: ℓ ≤ min n κ)
   (p: PMods (ntt_moduli n κ ℓ ζ)):
   nttSpec n κ ℓ ζ (inttSpec n κ ℓ ζ hκ hℓ p) = p := by
-  apply Subtype.eq; rw [nttSpec, inttSpec]; simp
+  apply Subtype.ext; rw [nttSpec, inttSpec]; simp
   rw [← ntt_rec_spec n κ ℓ ζ _ hκ hℓ]
   let ⟨p', hp⟩ := p; simp; clear p
   revert p'; induction ℓ with
@@ -493,7 +587,7 @@ lemma inttSpec_nttSpec [DecidableEq k]
   (p: PMods (ntt_moduli n κ 0 ζ)):
   inttSpec n κ ℓ ζ hκ hℓ (nttSpec n κ ℓ ζ p) = p := by
   let ⟨p', hp⟩ := p; clear p
-  apply Subtype.eq; rw [nttSpec, inttSpec]; simp
+  apply Subtype.ext; rw [nttSpec, inttSpec]; simp
   simp_rw [← ntt_rec_spec n κ ℓ ζ _ hκ hℓ]
   revert p'; induction ℓ with
   | zero =>
