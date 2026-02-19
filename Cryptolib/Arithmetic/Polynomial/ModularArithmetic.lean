@@ -347,8 +347,6 @@ noncomputable def RingEquiv [DecidableEq k]: @RingEquiv (PMod q) (PModVec q) _ (
 
 end PModVec
 
--- TODO Ring instances and isomorphism
-
 def PMods (ql: List k[X]): Type _ :=
   { poly: List k[X] // List.Forall₂ (fun p q => p = p % q) poly ql }
 
@@ -645,21 +643,60 @@ lemma ofVec_toVec [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map n
         omega
       | inr hge => omega
 
--- lemma toVec_ofVec [DecidableEq k] (Hq: q.natDegree > 0) (a: Vector k q.natDegree):
---   toVec (ofVec Hq a) = a := by
---   rw [ofVec, toVec]; simp
---   rw [toCoeffVector_ofCoeffVector]
+lemma toVec_ofVec [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql)) (a: Vector k (List.sum (List.map natDegree ql))):
+  toVec (ofVec Hql a) = a := by
+  apply Vector.ext
+  rw [ofVec, toVec]; simp
+  induction ql with
+  | nil => simp
+  | cons q ql ih =>
+    intros i hi; simp_rw [ofVec_aux]
+    simp_rw [List.zipWith_cons_cons, List.flatten_cons]
+    rw [List.getElem_append]
+    split
+    case h.cons.isTrue hlt =>
+      simp at hlt; simp
+      rw [toCoeffVector_getElem, ofCoeffVector_coeff]
+      simp; split <;> try omega
+      have xx := @Vector.getElem_extract _ _ i a 0 q.natDegree (by omega)
+      simp at xx; assumption
+    case h.cons.isFalse hge =>
+      simp at hge
+      have hh := ih (by simp at Hql; simp; exact Hql.right) (Vector.cast (by simp) (a.drop q.natDegree)) (i - q.natDegree) (by simp at hi; omega)
+      rw [Vector.getElem_cast, Vector.getElem_drop (by simp; simp at hi; omega)] at hh
+      transitivity a[q.natDegree + (i - q.natDegree)]
+      . rw [← hh]; simp; congr <;> simp
+      . congr; simp at hi; omega
 
--- lemma ofVec_inj [DecidableEq k] (Hq: q.natDegree > 0) (a b: Vector k q.natDegree):
---   ofVec Hq a = ofVec Hq b → a = b := by
---   rw [ofVec, ofVec]; intro Heq
---   apply Vector.toList_inj.mp
---   apply List.ext_get <;> [simp; skip]; intros i h₁ h₂
---   simp; simp at h₁ h₂
---   have Heq': (ofCoeffVector a).coeff i = (ofCoeffVector b).coeff i := by
---     apply Subtype.ext_iff.mp at Heq; simp at Heq; rw [Heq]
---   rw [ofCoeffVector_coeff, ofCoeffVector_coeff] at Heq'
---   split_ifs at Heq'; assumption
+lemma ofVec_inj [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql)) (a b: Vector k (List.sum (List.map natDegree ql))):
+  ofVec Hql a = ofVec Hql b → a = b := by
+  intro Heq; ext i hi
+  revert i
+  induction ql with
+  | nil => simp
+  | cons q ql ih =>
+    intros i hi
+    cases Nat.lt_or_ge i q.natDegree with
+    | inl hle =>
+      apply Subtype.ext_iff.mp at Heq; rw [ofVec, ofVec] at Heq; simp at Heq
+      rw [ofVec_aux, ofVec_aux] at Heq; rw [List.cons.injEq] at Heq
+      rw [← Vector.getElem_take (xs := a) (j := q.natDegree) (by omega)]
+      rw [← Vector.getElem_take (xs := b) (j := q.natDegree) (by omega)]
+      have he₁ := ofCoeffVector_coeff (l := a.take q.natDegree) (i := i)
+      split at he₁ <;> [skip; omega]
+      have he₂ := ofCoeffVector_coeff (l := b.take q.natDegree) (i := i)
+      split at he₂ <;> [skip; omega]
+      grind
+    | inr hgt =>
+      have hh := ih (by simp at Hql; simp; exact Hql.right) (Vector.cast (by simp)
+        (a.drop q.natDegree)) (Vector.cast (by simp) (b.drop q.natDegree))
+        (by apply Subtype.ext; rw [ofVec, ofVec]; simp
+            apply Subtype.ext_iff.mp at Heq; rw [ofVec, ofVec] at Heq; simp at Heq
+            rw [ofVec_aux, ofVec_aux] at Heq
+            rw [List.cons.injEq] at Heq; simp at Heq
+            grind)
+        (i - q.natDegree) (by simp at hi; omega)
+      simp at hh; grind
 
 end PMods
 
@@ -667,29 +704,182 @@ def PModsVec (ql: List k[X]): Type _ := Vector k (List.sum (List.map natDegree q
 
 namespace PModsVec
 
-variable {ql: List k[X]} (Hql: List.sum (List.map natDegree ql) > 0)
+variable {ql: List k[X]} (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql))
 
 def zero: PModsVec ql :=
   Vector.replicate (List.sum (List.map natDegree ql)) 0
 
--- private lemma ofVec_zero [DecidableEq k]: PMod.ofVec Hq zero = 0 := by
---   apply Subtype.ext; apply Polynomial.ext; intro i
---   rw [PMod.ofVec]; simp
---   rw [ofCoeffVector_coeff, zero]
---   rw [show (0: PMod q).val = 0 by rfl]
---   rw [Polynomial.coeff_zero]
---   split_ifs with Hcond
---   . rw [Vector.getElem_replicate Hcond]
---   . rfl
+private lemma ofVec_zero [DecidableEq k]: PMods.ofVec Hql zero = 0 := by
+  apply Subtype.ext
+  rw [show 0 = PMods.zero by rfl]
+  apply List.ext_get
+  . rw [List.Forall₂.length_eq (PMods.ofVec Hql zero).2]
+    rw [List.Forall₂.length_eq (PMods.zero (ql:=ql)).2]
+  . intros i hi₁ hi₂; simp
+    simp_rw [PMods.ofVec]
+    rw [PMods.getElem_ofVec_aux _ _ _ (by rw [PMods.ofVec] at hi₁; simp at hi₁; omega) (by rw [List.Forall₂.length_eq (PMods.zero (ql:=ql)).2] at hi₂; trivial)]
+    ext j; rw [ofCoeffVector_coeff]
+    split <;> [skip; simp]
+    case a.h.a.isTrue hj =>
+      simp at hj
+      rw [Vector.getElem_take, Vector.getElem_drop]
+      rw [zero]; simp
 
--- private lemma toVec_zero [DecidableEq k] (Hq: q.natDegree > 0): PMod.toVec (0: PMod q) = zero := by
---   rw [← ofVec_zero Hq]
---   rw [PMod.ofVec, PMod.toVec, toCoeffVector_ofCoeffVector]
+private lemma toVec_zero [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql)): PMods.toVec (0: PMods ql) = zero := by
+  rw [← ofVec_zero Hql]
+  rw [PMods.toVec_ofVec Hql]
 
--- def one: PModVec q :=
---   Vector.set zero 0 1 Hq
+noncomputable def one: PModsVec ql :=
+  PMods.toVec 1
 
+def add (a b: PModsVec ql): PModsVec ql :=
+  Vector.zipWith (fun x y => x + y) a b
 
+private lemma add_comm (a b: PModsVec ql): add a b = add b a := by
+  apply Vector.ext; intro i hi
+  rw [add, Vector.zipWith]
+  rw [add, Vector.zipWith]
+  simp; ring
+
+private lemma zero_add (a: PModsVec ql): add zero a = a := by
+  apply Vector.ext; intro i hi
+  rw [add, Vector.zipWith, zero]; simp
+
+private lemma add_zero (a: PModsVec ql): add a zero = a := by
+  rw [add_comm, zero_add]
+
+private lemma add_assoc (a b c: PModsVec ql):
+  add (add a b) c = add a (add b c) := by
+  apply Vector.ext; intro i hi
+  rw [add, add, add, add]; simp; ring
+
+def neg (a: PModsVec ql): PModsVec ql :=
+  Vector.map (fun x => - x) a
+
+private lemma neg_add_cancel (a: PModsVec ql):
+  add (neg a) a = zero := by
+  apply Vector.ext; intro i hi
+  rw [add, neg, zero]; simp
+
+noncomputable def mul [DecidableEq k] (a b: PModsVec ql): PModsVec ql :=
+  PMods.toVec (PMods.ofVec Hql a * PMods.ofVec Hql b)
+
+private lemma mul_comm [DecidableEq k] (a b: PModsVec ql):
+  mul Hql a b = mul Hql b a := by
+  rw [mul, mul]; ring_nf
+
+private lemma mul_zero [DecidableEq k] (a: PModsVec ql):
+  mul Hql a zero = zero := by
+  rw [mul, show (_: PMods ql) * _ = 0 by ring_nf; rw [ofVec_zero]; ring]
+  rw [toVec_zero Hql]
+
+private lemma zero_mul [DecidableEq k] (a: PModsVec ql):
+  mul Hql zero a = zero := by
+  rw [mul_comm, mul_zero]
+
+private lemma mul_one [DecidableEq k] (a: PModsVec ql):
+  mul Hql a one = a := by
+  rw [mul, one]; simp
+  rw [PMods.ofVec_toVec]; simp
+  rw [PMods.toVec_ofVec]
+
+private lemma one_mul [DecidableEq k] (a: PModsVec ql):
+  mul Hql one a = a := by
+  rw [mul_comm, mul_one]
+
+private lemma mul_assoc [DecidableEq k] (a b c: PModsVec ql):
+  mul Hql (mul Hql a b) c = mul Hql a (mul Hql b c) := by
+  rw [mul, mul, mul, mul]
+  rw [PMods.ofVec_toVec, PMods.ofVec_toVec]; ring_nf
+
+private lemma ofVec_add [DecidableEq k] (a b: PModsVec ql):
+  PMods.ofVec Hql (add a b) = PMods.ofVec Hql a + PMods.ofVec Hql b := by
+  apply Subtype.ext; rw [PMods.ofVec, PMods.ofVec, PMods.ofVec, instHAdd]; simp
+  have h₁ := List.Forall₂.length_eq (PMods.ofVec Hql (add a b)).2
+  have h₂ := List.Forall₂.length_eq (PMods.ofVec Hql a).2
+  have h₃ := List.Forall₂.length_eq (PMods.ofVec Hql b).2
+  rw [PMods.ofVec] at h₁ h₂ h₃; simp at h₁ h₂ h₃
+  apply List.ext_get
+  . simp; rw [h₁, h₂, h₃]; simp
+  . intros i hi₁ hi₂; simp
+    rw [PMods.getElem_ofVec_aux _ _ _ hi₁ (by omega)]
+    rw [PMods.getElem_ofVec_aux a _ _ (by omega) (by omega)]
+    rw [PMods.getElem_ofVec_aux b _ _ (by omega) (by omega)]
+    apply Polynomial.ext; intro j
+    rw [ofCoeffVector_coeff, Polynomial.coeff_add]
+    rw [ofCoeffVector_coeff, ofCoeffVector_coeff]
+    split <;> [skip; ring]
+    rw [Vector.getElem_take, Vector.getElem_take, Vector.getElem_take]
+    rw [Vector.getElem_drop, Vector.getElem_drop, Vector.getElem_drop]
+    rw [PModsVec.add]; simp
+
+private lemma toVec_add [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql)) (a b: PMods ql):
+  PMods.toVec (a + b) = add (PMods.toVec a) (PMods.toVec b) := by
+  nth_rw 1 [show a = a by rfl]
+  apply PMods.ofVec_inj Hql
+  rw [ofVec_add, PMods.ofVec_toVec, PMods.ofVec_toVec, PMods.ofVec_toVec]
+
+private lemma left_distrib [DecidableEq k] (a b c: PModsVec ql):
+  mul Hql a (add b c) = add (mul Hql a b) (mul Hql a c) := by
+  rw [mul, mul, mul, ofVec_add]
+  rw [LeftDistribClass.left_distrib, toVec_add Hql]
+
+private lemma right_distrib [DecidableEq k] (a b c: PModsVec ql):
+  mul Hql (add a b) c = add (mul Hql a c) (mul Hql b c) := by
+  rw [mul, mul, mul, ofVec_add]
+  rw [RightDistribClass.right_distrib, toVec_add Hql]
+
+noncomputable instance instCommRing [DecidableEq k]: CommRing (PModsVec ql) :=
+  { zero := PModsVec.zero,
+    one := PModsVec.one,
+    add := PModsVec.add,
+    zero_add := PModsVec.zero_add,
+    add_zero := PModsVec.add_zero,
+    add_assoc := PModsVec.add_assoc,
+    add_comm := PModsVec.add_comm,
+    neg := PModsVec.neg,
+    neg_add_cancel := PModsVec.neg_add_cancel,
+    mul := PModsVec.mul Hql,
+    zero_mul := PModsVec.zero_mul Hql,
+    mul_zero := PModsVec.mul_zero Hql,
+    mul_comm := PModsVec.mul_comm Hql,
+    one_mul := PModsVec.one_mul Hql,
+    mul_one := PModsVec.mul_one Hql,
+    mul_assoc := PModsVec.mul_assoc Hql,
+    left_distrib := PModsVec.left_distrib Hql,
+    right_distrib := PModsVec.right_distrib Hql,
+    nsmul := @nsmulRec _ (Zero.mk zero) (Add.mk add),
+    zsmul := @zsmulRec _ (Zero.mk zero) (Add.mk add) (Neg.mk neg) (@nsmulRec _ (Zero.mk zero) (Add.mk add)),
+  }
+
+noncomputable instance instRing [DecidableEq k]: Ring (PModsVec ql) :=
+  (instCommRing Hql).toRing
+
+noncomputable instance instAdd [DecidableEq k]: Add (PModsVec ql) :=
+  Add.mk PModsVec.add
+
+noncomputable instance instMul [DecidableEq k]: Mul (PModsVec ql) :=
+  Mul.mk (PModsVec.mul Hql)
+
+@[simp]
+def Equiv [DecidableEq k]: Equiv (PMods ql) (PModsVec ql) :=
+  { toFun := PMods.toVec,
+    invFun := PMods.ofVec Hql,
+    left_inv := by intro x; apply PMods.ofVec_toVec,
+    right_inv := by intro x; apply PMods.toVec_ofVec
+  }
+
+noncomputable def RingEquiv [DecidableEq k]: @RingEquiv (PMods ql) (PModsVec ql) _ (Mul.mk (PModsVec.mul Hql)) _ (Add.mk PModsVec.add) :=
+  @RingEquiv.mk (PMods ql)
+                (PModsVec ql)
+                (PMods.instMul)
+                (PModsVec.instMul Hql)
+                (PMods.instAdd)
+                (PModsVec.instAdd)
+                (PModsVec.Equiv Hql)
+                (by intros x y
+                    calc (x * y).toVec = (PMods.ofVec Hql x.toVec * PMods.ofVec Hql y.toVec).toVec := by rw [PMods.ofVec_toVec, PMods.ofVec_toVec])
+                (by intros x y; apply PModsVec.toVec_add Hql)
 
 end PModsVec
 
