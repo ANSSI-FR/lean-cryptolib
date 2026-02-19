@@ -549,7 +549,7 @@ noncomputable def nttSpec (n κ ℓ: ℕ) (ζ: k) (p: PMods (ntt_moduli n κ 0 �
   ⟨ntt n κ ℓ ζ (List.head p.1 (by let ⟨p, hp⟩ := p; apply List.ne_nil_of_length_pos; apply List.Forall₂.length_eq at hp; rw [length_ntt_moduli] at hp; simp at hp; simp; omega)), by apply ntt_mod_ntt_moduli⟩
 
 noncomputable def inttSpec (n κ ℓ: ℕ) (ζ: k) (hκ: ζ ^ (2 ^ κ) = -1) (hℓ: ℓ ≤ min n κ) (p: PMods (ntt_moduli n κ ℓ ζ)): PMods (ntt_moduli n κ 0 ζ) :=
-  ⟨intt_rec n κ ℓ ζ p.1 (by rw [length_PMods, length_ntt_moduli]), intt_rec_moduli n κ ℓ ζ hκ hℓ p.1 (by rw [length_PMods, length_ntt_moduli]) p.2⟩
+  ⟨intt_rec n κ ℓ ζ p.1 (by rw [List.Forall₂.length_eq p.2, length_ntt_moduli]), intt_rec_moduli n κ ℓ ζ hκ hℓ p.1 (by rw [List.Forall₂.length_eq p.2, length_ntt_moduli]) p.2⟩
 
 lemma nttSpec_inttSpec
   (hk: ringChar k ≠ 2)
