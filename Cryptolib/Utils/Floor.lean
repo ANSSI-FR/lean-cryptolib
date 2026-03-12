@@ -1,8 +1,10 @@
 -- Additional facts about `Floor`
 
 import Mathlib.Tactic
-import Mathlib.Algebra.Order.Field.Defs
 import Mathlib.Algebra.Order.Floor.Defs
+import Mathlib.Tactic.Basic
+import Mathlib.Tactic.Bound.Init
+import Mathlib.Util.CompileInductive
 
 section LinearOrderedField
 
@@ -21,7 +23,8 @@ lemma floor_sub_abs (a b: α):
         rw [Int.cast_sub]; linarith]
     rw [Int.ceil_add_intCast]; simp
     rw [show (0 = -1 + 1) by omega]
-    rw [Int.add_one_le_ceil_iff]; simp
+    suffices -1 < ⌈Int.fract a - Int.fract b⌉ by linarith
+    rw [Int.lt_ceil]; simp
     have Ha₀: 0 ≤ Int.fract a := by apply Int.fract_nonneg
     have Hb₁: Int.fract b < 1 := by apply Int.fract_lt_one
     linarith

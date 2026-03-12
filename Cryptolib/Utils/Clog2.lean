@@ -18,7 +18,7 @@ lemma log2_le_clog2 (n: ℕ):
 
 lemma le_pow_iff_clog2_le {x y: ℕ}:
   x ≤ 2 ^ y ↔ clog2 x ≤ y :=
-  by apply le_pow_iff_clog_le; simp
+  by symm; apply Nat.clog_le_iff_le_pow; simp
 
 lemma clog2_le_log2 (n: ℕ):
   n.clog2 ≤ n.log2 + 1 := by
@@ -35,4 +35,4 @@ lemma clog2_eq (n: ℕ):
   n.clog2 = if 2 ^ n.log2 < n then n.log2 + 1 else n.log2 := by
   have H₀ := clog2_le_log2 n
   have H₁ := log2_le_clog2 n
-  split_ifs with Hcond <;> rw [Nat.pow_lt_iff_lt_clog (by simp), ← clog2] at Hcond <;> linarith
+  split_ifs with Hcond <;> rw [← Nat.lt_clog_iff_pow_lt (by simp), ← clog2] at Hcond <;> linarith

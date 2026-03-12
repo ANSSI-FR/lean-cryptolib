@@ -58,7 +58,7 @@ lemma smod_is_bmod (x: ℤ) (N: ℕ):
   rw [show ((2 * x + ↑N) / (2 * ↑N)) = if x % ↑N < (↑N + 1) / 2 then (x / ↑N) else (x / ↑N + 1) by
         refine ((@Int.ediv_emod_unique (2 * x + ↑N) (2 * ↑N) (if x % ↑N < (↑N + 1) / 2 then 2 * (x % ↑N) + ↑N else 2 * (x % ↑N) - ↑N) (if x % ↑N < (↑N + 1) / 2 then x / ↑N else x / ↑N + 1) (by omega)).mpr ?_).left
         apply And.intro
-        . split_ifs with A <;> nth_rw 3 [← Int.ediv_add_emod x N] <;> linarith
+        . split_ifs with A <;> nth_rw 3 [← Int.mul_ediv_add_emod x N] <;> linarith
         . apply And.intro
           . have Y := @Int.emod_nonneg x N (by omega)
             split_ifs with A; linarith
@@ -159,20 +159,24 @@ lemma barrett_mul_spec (a b: ℤ) (M R k q: ℕ)
       rw [Heq]; simp
     | inr Hne =>
       simp; rw [← pow_add]
-      apply lt_of_le_of_lt
-      . qify at Ha'
-        apply (mul_le_mul_right (by qify at Hqpos; linarith)).mpr Ha'
-      . nth_rw 4 [← pow_one 2]
-        rw [← mul_assoc, ← pow_add]
-        apply lt_of_lt_of_le
-        . have X: q < 2 ^ (q.log2 + 1) := by rw [← Nat.log2_lt] <;> linarith
-          rw [mul_lt_mul_left]; qify at X; exact X; apply pow_pos rfl _
-        . rw [← pow_add]
-          apply pow_le_pow_right₀; simp
-          have X: |b|.toNat.clog2 ≤ M - 2 := by
-            rw [← Nat.le_pow_iff_clog2_le]; zify
-            rw [Int.toNat_of_nonneg]; omega; apply abs_nonneg
-          ring_nf; omega
+      rcases M with ( _ | _ | M ) <;> simp_all
+      rw [ show k + (M + 1 + q.log2 - |b|.toNat.clog2) = (M - |b|.toNat.clog2 + (k - 1)) + (2 + q.log2) by
+            have h: |b|.toNat.clog2 ≤ M := by
+              rw [Nat.clog2, Nat.clog_le_iff_le_pow]
+              subst HR
+              simp_all only [Nat.cast_pow, Nat.cast_ofNat, add_sub_cancel, Int.toNat_le, δ]; trivial
+            omega ] ; ring_nf ; norm_num [ pow_add, pow_mul ] at *;
+      have hq_lt : q < 2 ^ (q.log2 + 1) := by
+        exact Nat.lt_log2_self
+      rw [ show (2: ℚ) ^ (M - |b|.toNat.clog2) * 2 ^ (k - 1) * 2 ^ q.log2 * 4 = 2 ^ (M - |b|.toNat.clog2) * 2 ^ (k - 1) * 2 ^ (q.log2 + 1) * 2 by
+           rw [pow_succ']; nlinarith]
+      apply mul_lt_mul
+      . apply mul_lt_mul' <;> norm_cast
+        . omega
+        . rw [← Nat.pow_add]; apply Nat.pow_pos; omega
+      . rfl
+      . rfl
+      . norm_cast; rw [← Nat.pow_add, ← Nat.pow_add]; apply pow_nonneg; omega
 
 def barrett_reduce (R: ℕ) (a: ℤ) (q: ℕ): ℤ :=
   a - q * ⌊((a * ⌊(R / q)⌉) / R)⌉
@@ -189,8 +193,6 @@ lemma barrett_reduce_spec (a: ℤ) (M R k q: ℕ)
   . rw [barrett_reduce, barrett_mul]
     rw [mul_one]; simp
   . simp; simp at Hk; assumption
-  . rw [HR, Nat.clog2]; simp
   . simp; refine one_le_pow₀ (by simp)
-  . rw [Nat.clog2]; simp; assumption
 
 end SignedBarrettReduction

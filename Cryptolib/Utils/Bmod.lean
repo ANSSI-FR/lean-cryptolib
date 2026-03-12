@@ -26,7 +26,7 @@ lemma bmod_eq' (x: ℤ) (m: ℕ):
       rw [Rat.floor_intCast_div_natCast]; symm
       apply ((@Int.ediv_emod_unique _ _ (2 * (x % m) + m) _ (by omega)).mpr ?_).left
       apply And.intro
-      . nth_rw 3 [← Int.ediv_add_emod x m]; simp
+      . nth_rw 3 [← Int.mul_ediv_add_emod x m]; simp
         linarith
       . have X := @Int.emod_nonneg x m (by omega)
         simp; apply And.intro <;> linarith
@@ -39,7 +39,7 @@ lemma bmod_eq' (x: ℤ) (m: ℕ):
       left; symm
       apply ((@Int.ediv_emod_unique _ _ (2 * (x % m) - m) _ (by omega)).mpr ?_).left
       apply And.intro
-      . nth_rw 3 [← Int.ediv_add_emod x m]
+      . nth_rw 3 [← Int.mul_ediv_add_emod x m]
         linarith
       . have X := @Int.emod_lt_of_pos x m (by omega)
         simp; apply And.intro <;> try linarith

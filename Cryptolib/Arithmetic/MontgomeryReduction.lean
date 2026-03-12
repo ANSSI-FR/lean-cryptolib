@@ -197,7 +197,7 @@ lemma signed_montgomery_add_reduce_spec
     have H₀ := montgomery_add_reduce_bounds HRpos isDivMod_bdiv_bmod Hq' (R/2) H x
     simp at H₀; qify; apply lt_of_le_of_lt; apply H₀; simp at Hx
     rw [div_lt_iff₀ (by qify at HRpos; linarith)]
-    rw [div_mul_eq_mul_div₀, mul_comm]; apply lt_of_lt_of_le; apply add_lt_add_right Hx
+    rw [div_mul_eq_mul_div₀, mul_comm]; apply lt_of_lt_of_le; apply add_lt_add_left Hx
     cancel_denoms; linarith
   . rw [← @Int.emod_bmod (x * R'), ← montgomery_add_reduce_spec HRpos HR' isDivMod_bdiv_bmod Hq']
     rw [montgomery_add_reduce, signed_montgomery_add_reduce, Int.emod_bmod]
@@ -223,7 +223,7 @@ lemma signed_montgomery_sub_reduce_weak_spec
     have H₀ := montgomery_sub_reduce_bounds HRpos isDivMod_bdiv_bmod Hq' (R/2) H x
     simp at H₀; qify; apply lt_of_le_of_lt; apply H₀; simp at Hx
     rw [div_lt_iff₀ (by qify at HRpos; linarith)]
-    rw [div_mul_eq_mul_div₀, mul_comm]; apply lt_of_lt_of_le; apply add_lt_add_right Hx
+    rw [div_mul_eq_mul_div₀, mul_comm]; apply lt_of_lt_of_le; apply add_lt_add_left Hx
     cancel_denoms; linarith
   . rw [← @Int.emod_bmod (x * R'), ← montgomery_sub_reduce_spec HRpos HR' isDivMod_bdiv_bmod Hq']
     rw [montgomery_sub_reduce, signed_montgomery_sub_reduce, Int.emod_bmod]
@@ -265,8 +265,7 @@ lemma signed_montgomery_sub_reduce_spec
         apply lt_of_lt_of_le Hx₂; simp
         rw [mul_div_assoc]; apply mul_le_mul <;> try linarith
         . apply Int.floor_le
-        . apply Int.cast_nonneg.mpr; apply Int.floor_nonneg.mpr
-          qify at HRpos; linarith
+        . norm_cast; omega
     | inr Heq =>
       rw [← Heq, signed_montgomery_sub_reduce_eq₀ R q q' HRpos Hq']; simp; assumption
   . rw [← @Int.emod_bmod (x * R'), ← montgomery_sub_reduce_spec (by omega) HR' isDivMod_bdiv_bmod Hq']
