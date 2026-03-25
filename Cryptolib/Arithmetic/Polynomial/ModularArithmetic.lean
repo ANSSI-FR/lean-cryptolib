@@ -520,7 +520,7 @@ def toVec (a: PMods ql): Vector k (List.sum (List.map natDegree ql)) :=
         . simp; rw [List.Forall₂.length_eq a.2]
         . simp)
 
-private lemma getElem_toVec (a: PMods ql)
+lemma getElem_toVec (a: PMods ql)
   (i: ℕ) (h₁: i < ql.length) (k: ℕ) (h₂: k < ql[i].natDegree):
   a.toVec[(List.map natDegree (List.take i ql)).sum + k]'(by simp; apply @Nat.lt_of_lt_of_le _ (List.take (i + 1) (List.map natDegree ql)).sum; rw [List.sum_take_succ _ _ (by simp; assumption)]; simp; omega; rw [← List.sum_take_add_sum_drop (List.map natDegree ql) (i+1)]; omega) = (toCoeffVector ql[i].natDegree ((a.1)[i]'(by rw [List.Forall₂.length_eq a.2]; assumption)))[k] := by
   revert i k; induction ql with
