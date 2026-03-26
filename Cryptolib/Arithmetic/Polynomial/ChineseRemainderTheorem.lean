@@ -642,11 +642,6 @@ lemma decompose_moduli_take_sum_degree (n κ ℓ i: ℕ) (ζ: k) (hi: i ≤ 2 ^ 
         funext i; simp]
     simp; rw [Spec.length_decompose]; exact hi
 
-#check Spec.mod_posicyclic_eq
-#print Spec.ntt_layer'
-#check Spec.ntt_layer
-#check Spec.ntt_moduli_layer_eq
-
 -- Implements the butterfly operation
 def ntt_butterfly_vec (n: ℕ) (z: k) (start len: ℕ)
   (v: Vector k (2 ^ n)) (Hbounds: start + 2 * len ≤ 2 ^ n) := Id.run do
@@ -988,6 +983,36 @@ def ntt_layer_vec (n κ ℓ: ℕ) (ζ: k) (Hℓ: ℓ < min n κ) (v: Vector k (2
              rw [show i * 2 ^ (n - ℓ) + 2 ^ (n - ℓ) = (i + 1) * 2 ^ (n - ℓ) by nlinarith]
              apply Nat.mul_le_mul_right; omega)
   return v
+
+lemma ntt_layer_vec_spec [DecidableEq k] (n κ ℓ: ℕ) (ζ: k)
+  (hκ : ζ ^ 2 ^ κ = -1) (hℓ: ℓ < min n κ)
+  (p: PMods (Spec.ntt_moduli n κ ℓ ζ)) (p': PMods (Spec.ntt_moduli n κ (ℓ + 1) ζ))
+  (Hp': p'.val = Spec.ntt_layer' n κ (ℓ + 1) ζ p.val):
+  ntt_layer_vec n κ ℓ ζ hℓ (Vector.cast (by apply decompose_moduli_sum_degree; omega) (PMods.toVec p)) = Vector.cast (by apply decompose_moduli_sum_degree; omega) (PMods.toVec p') := by
+  generalize h: ntt_layer_vec n κ ℓ ζ hℓ (Vector.cast (by apply decompose_moduli_sum_degree; omega) (PMods.toVec p)) = x
+  apply Id.of_wp_run_eq h
+  mvcgen
+  case inv1 =>
+    exact ⇓⟨xs, r⟩ => ⌜ let i := xs.prefix.length; r.toList = (PMods.toVec p').toList.take (i * 2 ^ (n - ℓ)) ++ (PMods.toVec p).toList.drop (i * 2 ^ (n - ℓ)) ⌝
+  case vc1 old_len len v pre i suf hcur v' hi z r hv' =>
+    simp; simp at hv'; subst r
+    have hlenpre: pre.length = i := by
+      rw [Std.Legacy.Range.toList, Nat.div_one] at hcur
+      rw [List.eq_of_range'_eq_append_cons hcur]; simp
+    rw [hlenpre] at hv'
+    rw [ntt_butterfly_vec_spec n κ ℓ ζ z (i * old_len) len i v' hκ hℓ
+        (by subst len old_len; rw [Nat.shiftRight_eq_div_pow, Nat.pow_div (by omega) (by omega)]; congr 1)
+        (by rfl) (by subst len old_len; rw [Nat.shiftRight_eq_div_pow, Nat.pow_div (by omega) (by omega), ← Nat.pow_add_one', show n - ℓ - 1 + 1 = n - ℓ by omega, show 2 ^ n = 2 ^ ℓ * 2 ^ (n - ℓ) by rw [← Nat.pow_add]; congr 1; omega, ← Nat.add_one_mul]; apply Nat.mul_le_mul_right ; omega)
+        hi (by rfl) p p' Hp' hv']
+    rw [hlenpre]
+  case vc2 old_len len v =>
+    simp; subst v; rw [Vector.toList_cast]
+  case vc3 old_len len v r h =>
+    simp at h; apply Vector.toList_inj.mp
+    rw [h, Vector.toList_cast, ← Nat.pow_add, show ℓ + (n - ℓ) = n by omega]
+    rw [List.take_of_length_le (by simp; rw [decompose_moduli_sum_degree]; omega)]
+    rw [List.drop_of_length_le (by simp; rw [decompose_moduli_sum_degree]; omega)]
+    simp
 
 end NTT.Impl
 
