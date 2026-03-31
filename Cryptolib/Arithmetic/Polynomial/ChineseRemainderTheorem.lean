@@ -1014,6 +1014,68 @@ lemma ntt_layer_vec_spec [DecidableEq k] (n κ ℓ: ℕ) (ζ: k)
     rw [List.drop_of_length_le (by simp; rw [decompose_moduli_sum_degree]; omega)]
     simp
 
+def ntt_vec (n κ: ℕ) (ζ: k) (v: Vector k (2 ^ n)) :=
+  Id.run do
+  let mut v := v
+  for hℓ: ℓ in [0:min n κ] do
+    v := ntt_layer_vec n κ ℓ ζ (Membership.mem.upper hℓ) v
+  return v
+
+lemma ntt_vec_spec [DecidableEq k] (n κ: ℕ) (ζ: k)
+  (hκ: ζ ^ 2 ^ κ = -1) (p: PMods (Spec.ntt_moduli n κ 0 ζ)):
+  let p': PMods (Spec.ntt_moduli n κ (min n κ) ζ) := ⟨ Spec.ntt n κ (min n κ) ζ (List.head p.val (by apply List.ne_nil_of_length_pos; rw [List.Forall₂.length_eq p.2, Spec.length_ntt_moduli]; simp)), (by apply Spec.ntt_mod_ntt_moduli) ⟩
+  ntt_vec n κ ζ (Vector.cast (by apply decompose_moduli_sum_degree; omega) (PMods.toVec p)) = Vector.cast (by apply decompose_moduli_sum_degree; rfl) p'.toVec := by
+  generalize h: ntt_vec n κ ζ (Vector.cast (by apply decompose_moduli_sum_degree; omega) (PMods.toVec p)) = x
+  apply Id.of_wp_run_eq h
+  mvcgen
+  case inv1 =>
+    exact ⇓⟨xs, r⟩ =>
+    ⌜ let ℓ := xs.prefix.length;
+      let hℓ: ℓ ≤ min n κ := by
+        have hℓ := xs.property
+        simp_rw [Std.Legacy.Range.toList, Nat.div_one] at hℓ
+        simp at hℓ
+        have heqlen: (xs.prefix ++ xs.suffix).length = (List.range' 0 (min n κ)).length := by congr 1
+        simp at heqlen; omega
+      let p': PMods (Spec.ntt_moduli n κ ℓ ζ) := ⟨ Spec.ntt n κ ℓ ζ (List.head p.val (by apply List.ne_nil_of_length_pos; rw [List.Forall₂.length_eq p.2, Spec.length_ntt_moduli]; simp)), (by apply Spec.ntt_mod_ntt_moduli) ⟩
+      r =  Vector.cast (by apply decompose_moduli_sum_degree; exact hℓ) p'.toVec ⌝
+  case vc1 pre ℓ suf heq r hr =>
+    simp at hr; simp
+    have heqℓ: pre.length = ℓ := by
+      rw [Std.Legacy.Range.toList, Nat.div_one] at heq
+      rw [List.eq_of_range'_eq_append_cons heq]; simp
+    have hℓ: ℓ + 1 ≤ min n κ := by
+      simp_rw [Std.Legacy.Range.toList, Nat.div_one] at heq
+      simp at heq; have heq': (List.range' 0 (min n κ)).length = (pre ++ ℓ :: suf).length := by congr 1
+      simp at heq'; omega
+    simp_rw [heqℓ]
+    simp_rw [← Spec.ntt_rec_spec n κ (ℓ + 1) ζ _ hκ hℓ]
+    simp_rw [Spec.ntt_rec, Spec.ntt_rec_spec n κ ℓ ζ _ hκ (by omega)]
+    generalize_proofs at *
+    convert ntt_layer_vec_spec n κ ℓ ζ hκ ‹_› _ _ _ using 1
+    rotate_left 2
+    . exact ⟨Spec.ntt n κ ℓ ζ (List.head p.1 (by assumption)), by rw [← heqℓ]; assumption⟩;
+    . exact ⟨Spec.ntt_layer' n κ (ℓ + 1) ζ (Spec.ntt n κ ℓ ζ (List.head p.1 (by assumption))), by nth_rw 2 [show ℓ + 1 = (pre ++ [ℓ]).length by simp; symm; assumption]; assumption⟩;
+    · rfl;
+    . grind
+    · grind
+  case vc2 =>
+    simp; congr 1
+    apply Subtype.ext; simp
+    rw [Spec.ntt]
+    have h := List.Forall₂.length_eq p.2
+    rw [Spec.length_ntt_moduli] at h; simp at h
+    let ⟨a, ha⟩ := List.length_eq_one_iff.mp h
+    simp_rw [ha]; simp
+    let hh := p.2; rw [ha] at hh
+    let ⟨b, hb⟩ := List.length_eq_one_iff.mp (@Spec.length_ntt_moduli _ _ n κ 0 ζ)
+    rw [hb]; rw [hb] at hh; simp; simp at hh; exact hh
+  case vc3 r hr =>
+    simp at hr; subst r
+    apply Vector.toList_inj.mp
+    rw [Vector.toList_cast, Vector.toList_cast]
+    rw [PMods.toVec, PMods.toVec]; simp
+
 end NTT.Impl
 
 end Polynomial
