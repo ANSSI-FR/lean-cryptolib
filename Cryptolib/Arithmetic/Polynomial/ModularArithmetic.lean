@@ -127,10 +127,10 @@ noncomputable instance instCommRing: CommRing (PMod q) :=
 noncomputable instance instRing: Ring (PMod q) :=
   instCommRing.toRing
 
-def toVec (a: PMod q): Vector k (q.natDegree) :=
+noncomputable def toVec (a: PMod q): Vector k (q.natDegree) :=
   toCoeffVector _ a.1
 
-def ofVec [DecidableEq k] (Hq: q.natDegree > 0) (a: Vector k (q.natDegree)): PMod q :=
+noncomputable def ofVec [DecidableEq k] (Hq: q.natDegree > 0) (a: Vector k (q.natDegree)): PMod q :=
   ⟨ofCoeffVector a, by symm
                        have Hqnz: q ≠ 0 := by intro Heq; rw [Heq, natDegree_zero] at Hq; simp at Hq
                        rw [mod_eq_self_iff Hqnz]
@@ -215,7 +215,7 @@ private lemma ofVec_add [DecidableEq k] (a b: PModVec q):
   PMod.ofVec Hq (add a b) = PMod.ofVec Hq a + PMod.ofVec Hq b := by
   apply Subtype.ext; apply Polynomial.ext; intro i
   rw [PMod.ofVec, PMod.ofVec, PMod.ofVec]; simp
-  rw [ofCoeffVector_coeff, instHAdd]; simp
+  rw [ofCoeffVector_coeff, instHAdd, Add.add]; simp
   rw [ofCoeffVector_coeff, ofCoeffVector_coeff]
   rw [add]; split_ifs with Hcond
   . apply Vector.getElem_zipWith
@@ -326,7 +326,7 @@ noncomputable instance instMul [DecidableEq k]: Mul (PModVec q) :=
   Mul.mk (PModVec.mul Hq)
 
 @[simp]
-def Equiv [DecidableEq k]: Equiv (PMod q) (PModVec q) :=
+noncomputable def Equiv [DecidableEq k]: Equiv (PMod q) (PModVec q) :=
   { toFun := PMod.toVec,
     invFun := PMod.ofVec Hq,
     left_inv := by intro x; apply PMod.ofVec_toVec,
@@ -512,7 +512,7 @@ noncomputable instance instCommRing: CommRing (PMods ql) :=
 noncomputable instance instRing: Ring (PMods ql) :=
   instCommRing.toRing
 
-def toVec (a: PMods ql): Vector k (List.sum (List.map natDegree ql)) :=
+noncomputable def toVec (a: PMods ql): Vector k (List.sum (List.map natDegree ql)) :=
   @Vector.mk _ _
     (List.zipWith (fun p q => (toCoeffVector q.natDegree p).toList) a.1 ql).flatten.toArray
     (by simp; congr
@@ -546,7 +546,7 @@ lemma getElem_toVec (a: PMods ql)
       have h := ih ⟨as, has⟩ i h₁ k h₂
       rw [toVec] at h; simp at h; apply h
 
-private def ofVec_aux [DecidableEq k] {n} (xs: Vector k n) (ys: List k[X]): List k[X] :=
+private noncomputable def ofVec_aux [DecidableEq k] {n} (xs: Vector k n) (ys: List k[X]): List k[X] :=
   match ys with
   | [] => []
   | y::ys =>
@@ -577,7 +577,7 @@ private lemma getElem_ofVec_aux [DecidableEq k] {n} (xs: Vector k n) (ys: List k
           simp_rw [List.drop_drop]
       . rfl
 
-def ofVec [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql)) (a: Vector k (List.sum (List.map natDegree ql))): PMods ql :=
+noncomputable def ofVec [DecidableEq k] (Hql: List.Forall (fun n => n > 0) (List.map natDegree ql)) (a: Vector k (List.sum (List.map natDegree ql))): PMods ql :=
   ⟨ofVec_aux a ql
   , by have h: ∀ (ys: List k[X]) n (xs: Vector k n) (hn: (List.map natDegree ys).sum ≤ n) (hpos: List.Forall (fun n => n > 0) (List.map natDegree ys)), List.Forall₂ (fun p q ↦ p = p % q) (ofVec_aux xs ys) ys := by
          clear * -; intro ys
@@ -779,7 +779,7 @@ private lemma zero_mul [DecidableEq k] (a: PModsVec ql):
 
 private lemma mul_one [DecidableEq k] (a: PModsVec ql):
   mul Hql a one = a := by
-  rw [mul, one]; simp
+  rw [mul, one]
   rw [PMods.ofVec_toVec]; simp
   rw [PMods.toVec_ofVec]
 
@@ -794,7 +794,7 @@ private lemma mul_assoc [DecidableEq k] (a b c: PModsVec ql):
 
 private lemma ofVec_add [DecidableEq k] (a b: PModsVec ql):
   PMods.ofVec Hql (add a b) = PMods.ofVec Hql a + PMods.ofVec Hql b := by
-  apply Subtype.ext; rw [PMods.ofVec, PMods.ofVec, PMods.ofVec, instHAdd]; simp
+  apply Subtype.ext; rw [PMods.ofVec, PMods.ofVec, PMods.ofVec, instHAdd, Add.add]; simp
   have h₁ := List.Forall₂.length_eq (PMods.ofVec Hql (add a b)).2
   have h₂ := List.Forall₂.length_eq (PMods.ofVec Hql a).2
   have h₃ := List.Forall₂.length_eq (PMods.ofVec Hql b).2
@@ -862,7 +862,7 @@ noncomputable instance instMul [DecidableEq k]: Mul (PModsVec ql) :=
   Mul.mk (PModsVec.mul Hql)
 
 @[simp]
-def Equiv [DecidableEq k]: Equiv (PMods ql) (PModsVec ql) :=
+noncomputable def Equiv [DecidableEq k]: Equiv (PMods ql) (PModsVec ql) :=
   { toFun := PMods.toVec,
     invFun := PMods.ofVec Hql,
     left_inv := by intro x; apply PMods.ofVec_toVec,

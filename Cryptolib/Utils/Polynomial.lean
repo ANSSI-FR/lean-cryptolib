@@ -38,8 +38,8 @@ variable [CommRing R]
 lemma mul_modByMonic_left (p₁ p₂ q: R[X]):
   ((p₁ %ₘ q) * p₂) %ₘ q = (p₁ * p₂) %ₘ q := by
   by_cases Hq: Monic q
-  . have Hp₁ := modByMonic_eq_sub_mul_div p₁ Hq
-    have Hp₂ := modByMonic_eq_sub_mul_div p₂ Hq
+  . have Hp₁ := modByMonic_eq_sub_mul_div p₁ q
+    have Hp₂ := modByMonic_eq_sub_mul_div p₂ q
     rw [Hp₁, mul_sub_right_distrib, sub_modByMonic]
     rw [mul_assoc, self_mul_modByMonic Hq]; simp
   . repeat rw [modByMonic_eq_of_not_monic _ Hq]
@@ -53,7 +53,7 @@ lemma mul_modByMonic_right (p₁ p₂ q: R[X]):
 lemma modByMonic_mul_left_mod {p q₁ q₂: R[X]} (h₁: Monic q₁) (h₂: Monic q₂):
   (p %ₘ (q₁ * q₂)) %ₘ q₂ = p %ₘ q₂ := by
   have hq := Polynomial.Monic.mul h₁ h₂
-  nth_rw 2 [← Polynomial.modByMonic_add_div p hq]
+  nth_rw 2 [← Polynomial.modByMonic_add_div p (q₁ * q₂)]
   rw [Polynomial.add_modByMonic]; simp
   apply (Polynomial.modByMonic_eq_zero_iff_dvd h₂).mpr
   exists (q₁ * (p /ₘ (q₁ * q₂))); ring

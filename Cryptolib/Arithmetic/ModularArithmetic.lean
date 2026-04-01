@@ -35,13 +35,13 @@ def fromZMod (n: ℕ) (x: ZMod n): ZModᵤ n :=
       | inl H₀ => nth_rw 3 [H₀]; simp
       | inr Hne =>
         have X: NeZero n := {out := Hne}
-        refine Eq.symm (Int.emod_eq_of_lt (by exact Int.ofNat_zero_le x.val) (by refine Int.ofNat_lt.mpr (by refine ZMod.val_lt x)))
+        refine Eq.symm (Int.emod_eq_of_lt (by exact Int.natCast_nonneg x.val) (by refine Int.ofNat_lt.mpr (by refine ZMod.val_lt x)))
   ⟩
 
 lemma fromToZMod (n: ℕ) [NeZero n]: Function.LeftInverse (fromZMod n) (toZMod n) := by
   intro x; simp [fromZMod, toZMod]
   let ⟨xval, xeq⟩ := x; simp
-  apply Subtype.eq; simp
+  apply Subtype.ext; simp
   rw [@ZMod.coe_intCast]; exact id (Eq.symm xeq)
 
 lemma toFromZMod (n: ℕ) [NeZero n]: Function.RightInverse (fromZMod n) (toZMod n) := by
@@ -57,10 +57,12 @@ def ringEquivZMod (n: ℕ) [NeZero n]: ZModᵤ n ≃+* ZMod n := by
     let ⟨xval, xeq⟩ := x
     let ⟨yval, yeq⟩ := y
     simp [toZMod]; rw [instHMul]; simp
+    rw [Mul.mul]; simp
   . simp; intros x y
     let ⟨xval, xeq⟩ := x
     let ⟨yval, yeq⟩ := y
     simp [toZMod]; rw [instHAdd]; simp
+    rw [Add.add]; simp
 
 instance instRing (n: ℕ) [NeZero n]: Ring (ZModᵤ n) := by
   exact (Equiv.ring (ZModᵤ.ringEquivZMod n).toEquiv)
@@ -117,8 +119,8 @@ def ringEquivZModᵤ (n: ℕ): ZModₛ n ≃+* ZModᵤ n := by
     let ⟨xval, xeq⟩ := x
     let ⟨yval, yeq⟩ := y
     simp [toZModᵤ]; rw [instHMul, instHMul]; simp
-    apply Subtype.eq; simp
-    rw [← Int.emod_def']; split_ifs <;> try omega
+    apply Subtype.ext; simp_rw [Mul.mul, mul]
+    rw [← Int.emod_def']; simp; split_ifs <;> try omega
     . rw [show (↑n + xval) * (↑n + yval) = xval * yval + (n + xval + yval) * ↑n by linarith]
       rw [Int.add_mul_emod_self_right]
     . rw [show xval * (↑n + yval) = xval * yval + xval * n by linarith]
@@ -129,8 +131,9 @@ def ringEquivZModᵤ (n: ℕ): ZModₛ n ≃+* ZModᵤ n := by
     let ⟨xval, xeq⟩ := x
     let ⟨yval, yeq⟩ := y
     simp [toZModᵤ]; rw [instHAdd]; nth_rw 2 [instHAdd]
-    apply Subtype.eq; simp
-    rw [← Int.emod_def']
+    apply Subtype.ext; simp
+    rw [Add.add]; simp
+    rw [← Int.emod_def', Add.add]; simp
     split_ifs <;> try omega
     . rw [show ↑n + xval + (↑n + yval) = xval + yval + 2 * n by linarith]
       rw [Int.add_mul_emod_self_right]

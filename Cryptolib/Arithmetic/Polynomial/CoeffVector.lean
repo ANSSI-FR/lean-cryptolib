@@ -8,10 +8,10 @@ namespace Polynomial
 
 variable {R : Type*} [Semiring R]
 
-def toCoeffVector (n: ℕ) (P: R[X]): Vector R n :=
+noncomputable def toCoeffVector (n: ℕ) (P: R[X]): Vector R n :=
   Vector.ofFn (Polynomial.toFn n P)
 
-def ofCoeffVector [DecidableEq R] {n: ℕ} (l: Vector R n): R[X] :=
+noncomputable def ofCoeffVector [DecidableEq R] {n: ℕ} (l: Vector R n): R[X] :=
   Polynomial.ofFn n (Vector.get l)
 
 section Lemmas
